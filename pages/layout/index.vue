@@ -1,0 +1,106 @@
+<template>
+  <div>
+    <!-- 导航栏 -->
+
+    <nav class="navbar navbar-light">
+      <div class="container">
+        <nuxt-link class="navbar-brand" to="/">conduit</nuxt-link>
+        <ul class="nav navbar-nav pull-xs-right">
+          <li class="nav-item">
+            <nuxt-link
+              class="nav-link"
+              to="/"
+              :class="{ active: $route.name === 'home' }"
+              exact
+              >Home</nuxt-link
+            >
+          </li>
+          <template v-if="user">
+            <li class="nav-item">
+              <nuxt-link
+                class="nav-link"
+                to="/editor"
+                :class="{ active: $route.name === 'editor' }"
+              >
+                <i class="ion-compose"></i>&nbsp;New Post
+              </nuxt-link>
+            </li>
+            <li class="nav-item">
+              <nuxt-link
+                class="nav-link"
+                to="/settings"
+                :class="{ active: $route.name === 'settings' }"
+              >
+                <i class="ion-gear-a"></i>&nbsp;Settings
+              </nuxt-link>
+            </li>
+            <li class="nav-item">
+              <nuxt-link
+                class="nav-link"
+                :class="{ active: $route.name === 'profile' }"
+                :to="{
+                  name: 'profile',
+                  params: {
+                    username: user.username,
+                  },
+                }"
+              >
+                <img class="user-pic" :src="user.image" />
+                Little Fun
+              </nuxt-link>
+            </li>
+          </template>
+
+          <template v-else>
+            <li class="nav-item">
+              <nuxt-link
+                class="nav-link"
+                to="/register"
+                :class="{ active: $route.name === 'register' }"
+                >Sign up</nuxt-link
+              >
+            </li>
+            <li class="nav-item">
+              <nuxt-link
+                class="nav-link"
+                to="/login"
+                :class="{ active: $route.name === 'login' }"
+                >Sign in</nuxt-link
+              >
+            </li>
+          </template>
+        </ul>
+      </div>
+    </nav>
+    <!-- /导航栏 -->
+
+    <!-- 子路由 -->
+    <nuxt-child />
+    <!-- /子路由 -->
+
+    <!-- 底部 -->
+    <footer>
+      <div class="container">
+        <a href="/" class="logo-font">conduit</a>
+        <span class="attribution">
+          An interactive learning project from
+          <a href="https://thinkster.io">Thinkster</a>. Code &amp; design
+          licensed under MIT.
+        </span>
+      </div>
+    </footer>
+    <!-- /底部 -->
+  </div>
+</template>
+
+<script>
+import { mapState } from 'vuex'
+export default {
+  name: 'LayoutIndex',
+  computed: {
+    ...mapState(['user']),
+  },
+}
+</script>
+
+<style></style>
