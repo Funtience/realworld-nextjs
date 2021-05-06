@@ -4,15 +4,31 @@
       <div class="container">
         <div class="row">
           <div class="col-xs-12 col-md-10 offset-md-1">
-            <img src="http://i.imgur.com/Qr71crq.jpg" class="user-img" />
-            <h4>Eric Simons</h4>
+            <img :src="profile.image" class="user-img" />
+            <h4>{{ profile.username }}</h4>
             <p>
-              Cofounder @GoThinkster, lived in Aol's HQ for a few months, kinda
-              looks like Peeta from the Hunger Games
+              {{ profile.bio }}
             </p>
-            <button class="btn btn-sm btn-outline-secondary action-btn">
+            <button
+              v-if="user.username === username"
+              class="btn btn-sm btn-outline-secondary action-btn"
+              @click="$router.push('/settings')"
+            >
               <i class="ion-plus-round"></i>
-              &nbsp; Follow Eric Simons
+              &nbsp; Edit Profile Settings
+            </button>
+            <button
+              v-else
+              class="btn btn-sm action-btn ng-binding "
+              :class="[
+                profile.following ? 'btn-secondary' : 'btn-outline-secondary',
+                { disabled: isSubmitting },
+              ]"
+              @click="handleFollow"
+            >
+              <i class="ion-plus-round"></i>
+              &nbsp; {{ profile.following ? 'Follow' : 'Unfollow' }}
+              {{ username }}
             </button>
           </div>
         </div>
@@ -25,56 +41,116 @@
           <div class="articles-toggle">
             <ul class="nav nav-pills outline-active">
               <li class="nav-item">
-                <a class="nav-link active" href="">My Articles</a>
+                <nuxt-link
+                  class="nav-link"
+                  :class="{ active: $route.name === 'profile' }"
+                  exact
+                  :to="{
+                    name: 'profile',
+                    params: {
+                      username: $route.params.username,
+                    },
+                  }"
+                  >My Articles</nuxt-link
+                >
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="">Favorited Articles</a>
+                <nuxt-link
+                  class="nav-link"
+                  :class="{ active: $route.name === 'profileFavorites' }"
+                  exact
+                  :to="{
+                    name: 'profileFavorites',
+                    params: {
+                      username: $route.params.username,
+                    },
+                  }"
+                  >Favorited Articles</nuxt-link
+                >
               </li>
             </ul>
           </div>
 
-          <div class="article-preview">
+          <div
+            class="article-preview"
+            v-for="article in articles"
+            :key="article.slug"
+          >
             <div class="article-meta">
-              <a href=""><img src="http://i.imgur.com/Qr71crq.jpg"/></a>
+              <nuxt-link
+                :to="{
+                  name: 'profile',
+                  params: {
+                    username: article.author.username,
+                  },
+                }"
+                ><img :src="article.author.image"
+              /></nuxt-link>
               <div class="info">
-                <a href="" class="author">Eric Simons</a>
-                <span class="date">January 20th</span>
+                <nuxt-link
+                  :to="{
+                    name: 'profile',
+                    params: {
+                      username: article.author.username,
+                    },
+                  }"
+                  class="author"
+                  >{{ article.author.username }}</nuxt-link
+                >
+                <span class="date">{{ article.createdAt }}</span>
               </div>
-              <button class="btn btn-outline-primary btn-sm pull-xs-right">
-                <i class="ion-heart"></i> 29
+              <button
+                @click="handleFavorite(article)"
+                class="btn btn-sm pull-xs-right"
+                :disabled="article.isDisabled"
+                :class="[
+                  article.favorited ? 'btn-primary' : 'btn-outline-primary',
+                ]"
+              >
+                <i class="ion-heart"></i> {{ article.favoritesCount }}
               </button>
             </div>
-            <a href="" class="preview-link">
-              <h1>How to build webapps that scale</h1>
-              <p>This is the description for the post.</p>
+            <nuxt-link
+              :to="{
+                name: 'article',
+                params: {
+                  slug: article.slug,
+                },
+              }"
+              class="preview-link"
+            >
+              <h1>{{ article.title }}</h1>
+              <p>{{ article.description }}</p>
               <span>Read more...</span>
-            </a>
+            </nuxt-link>
           </div>
 
-          <div class="article-preview">
-            <div class="article-meta">
-              <a href=""><img src="http://i.imgur.com/N4VcUeJ.jpg"/></a>
-              <div class="info">
-                <a href="" class="author">Albert Pai</a>
-                <span class="date">January 20th</span>
-              </div>
-              <button class="btn btn-outline-primary btn-sm pull-xs-right">
-                <i class="ion-heart"></i> 32
-              </button>
-            </div>
-            <a href="" class="preview-link">
-              <h1>
-                The song you won't ever stop singing. No matter how hard you
-                try.
-              </h1>
-              <p>This is the description for the post.</p>
-              <span>Read more...</span>
-              <ul class="tag-list">
-                <li class="tag-default tag-pill tag-outline">Music</li>
-                <li class="tag-default tag-pill tag-outline">Song</li>
-              </ul>
-            </a>
-          </div>
+          <!-- 分页 -->
+          <nav v-if="totalPages > 1">
+            <ul class="pagination">
+              <li
+                class="page-item ng-scope"
+                :class="{ active: pageNumber === currentPage }"
+                v-for="pageNumber in totalPages"
+                @click="changePage"
+              >
+                <nuxt-link
+                  class="page-link"
+                  :to="{
+                    name: 'profile',
+                    params: {
+                      username,
+                    },
+                    query: {
+                      page: pageNumber,
+                    },
+                  }"
+                  >{{ pageNumber }}</nuxt-link
+                >
+              </li>
+            </ul>
+          </nav>
+          <!-- /分页 -->
         </div>
       </div>
     </div>
@@ -82,8 +158,80 @@
 </template>
 
 <script>
+import { getProfile, getUserInfo } from '@/api/user'
+import { getArticles, followAuthor, unfollowAuthor } from '@/api/article'
 export default {
   name: 'ProfileIndex',
+  // watchQuery: ['page'],
+  data() {
+    return {
+      username: '',
+      user: {},
+      profile: {},
+      articles: [],
+      totalPages: 1,
+      currentPage: 1,
+      isSubmitting: false,
+    }
+  },
+  created() {
+    this.username = this.$route.params.username
+    this.fetchUser()
+    this.fetchProfile()
+    this.fetchArticles()
+  },
+  methods: {
+    async fetchProfile() {
+      const { data } = await getProfile(this.username)
+      this.profile = data.profile
+    },
+    async fetchArticles() {
+      this.currentPage = Number.parseInt(this.$route.query.page) || 1
+      const limit = 10
+      const { data } =
+        this.$route.name === 'profile'
+          ? await getArticles({
+              author: this.username,
+              limit,
+              offset: (this.currentPage - 1) * limit,
+            })
+          : await getArticles({
+              favorited: this.username,
+              limit,
+              offset: (this.currentPage - 1) * limit,
+            })
+
+      this.articles = data.articles
+      this.articlesCount = data.articlesCount
+      this.totalPages = Math.ceil(this.articlesCount / limit)
+    },
+    async fetchUser() {
+      const { data } = await getUserInfo()
+      this.user = data.user
+    },
+    async handleFollow() {
+      if (this.profile.following) {
+        await unfollowAuthor(this.username)
+        this.profile.following = false
+      } else {
+        await followAuthor(this.username)
+        this.profile.following = true
+      }
+    },
+    changePage() {
+      this.fetchArticles()
+    },
+  },
+  watch: {
+    $route(to, from) {
+      if (to.name !== from.name) {
+        this.username = this.$route.params.username
+        this.fetchUser()
+        this.fetchProfile()
+        this.fetchArticles()
+      }
+    },
+  },
 }
 </script>
 

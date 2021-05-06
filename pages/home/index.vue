@@ -1,3 +1,4 @@
+import { mapState } from 'vuex';
 <template>
   <div class="home-page">
     <div class="banner">
@@ -13,11 +14,47 @@
           <!-- tab 栏 -->
           <div class="feed-toggle">
             <ul class="nav nav-pills outline-active">
-              <li class="nav-item">
-                <a class="nav-link disabled" href="">Your Feed</a>
+              <li class="nav-item" v-if="user">
+                <nuxt-link
+                  class="nav-link"
+                  :class="{ active: tab === 'your_feed' }"
+                  exact
+                  :to="{
+                    name: 'home',
+                    query: {
+                      tab: 'your_feed',
+                    },
+                  }"
+                  >Your Feed</nuxt-link
+                >
               </li>
               <li class="nav-item">
-                <a class="nav-link active" href="">Global Feed</a>
+                <nuxt-link
+                  class="nav-link"
+                  :class="{ active: tab === 'global_feed' }"
+                  exact
+                  :to="{
+                    name: 'home',
+                    query: {
+                      tab: 'global_feed',
+                    },
+                  }"
+                  >Global Feed</nuxt-link
+                >
+              </li>
+              <li class="nav-item" v-if="tag">
+                <nuxt-link
+                  class="nav-link active"
+                  exact
+                  :to="{
+                    name: 'home',
+                    query: {
+                      tab,
+                      tag,
+                    },
+                  }"
+                  >#{{ tag }}</nuxt-link
+                >
               </li>
             </ul>
           </div>
@@ -95,6 +132,7 @@
                     query: {
                       page: count,
                       tag,
+                      tab,
                     },
                   }"
                   >{{ count }}</nuxt-link
@@ -116,6 +154,7 @@
                   name: 'home',
                   query: {
                     tag,
+                    tab: 'tag',
                   },
                 }"
                 class="tag-pill tag-default"
@@ -138,18 +177,26 @@ import {
   addFavorite,
   cancelFavorite,
   getTags,
+  getFeedArticles,
 } from '@/api/article'
-
+import { mapState } from 'vuex'
 export default {
   name: 'HomeIndex',
-  watchQuery: ['page', 'tag'],
-  async asyncData({ query }) {
+  watchQuery: ['page', 'tag', 'tab'],
+  computed: {
+    ...mapState(['user']),
+  },
+  async asyncData({ store, query }) {
     const page = Number.parseInt(query.page) || 1
     const tag = query.tag
+    const tab = query.tab || 'global_feed'
     const limit = 10
 
+    const fetchArticleApi =
+      store.state.user && tab === 'your_feed' ? getFeedArticles : getArticles
+
     const [{ data: articleRes }, { data: tagRes }] = await Promise.all([
-      getArticles({
+      fetchArticleApi({
         limit,
         offset: (page - 1) * limit,
       }),
@@ -166,6 +213,7 @@ export default {
       pages: articlesCount / limit,
       tags,
       tag,
+      tab,
     }
   },
   methods: {

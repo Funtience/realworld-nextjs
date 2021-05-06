@@ -2,59 +2,31 @@
   <div class="article-page">
     <div class="banner">
       <div class="container">
-        <h1>How to build webapps that scale</h1>
+        <h1>{{ article.title }}</h1>
 
-        <div class="article-meta">
-          <a href=""><img src="http://i.imgur.com/Qr71crq.jpg"/></a>
-          <div class="info">
-            <a href="" class="author">Eric Simons</a>
-            <span class="date">January 20th</span>
-          </div>
-          <button class="btn btn-sm btn-outline-secondary">
-            <i class="ion-plus-round"></i>
-            &nbsp; Follow Eric Simons <span class="counter">(10)</span>
-          </button>
-          &nbsp;&nbsp;
-          <button class="btn btn-sm btn-outline-primary">
-            <i class="ion-heart"></i>
-            &nbsp; Favorite Post <span class="counter">(29)</span>
-          </button>
-        </div>
+        <article-meta :article="article" :user="user" />
       </div>
     </div>
 
     <div class="container page">
       <div class="row article-content">
         <div class="col-md-12">
-          <p>
-            Web development technologies have evolved at an incredible clip over
-            the past few years.
-          </p>
-          <h2 id="introducing-ionic">Introducing RealWorld.</h2>
-          <p>It's a great solution for learning how other frameworks work.</p>
+          <div v-html="article.body"></div>
+          <ul class="tag-list">
+            <li
+              class="tag-default tag-pill tag-outline"
+              v-for="(tag, index) in article.tagList"
+            >
+              {{ tag }}
+            </li>
+          </ul>
         </div>
       </div>
 
       <hr />
 
       <div class="article-actions">
-        <div class="article-meta">
-          <a href="profile.html"><img src="http://i.imgur.com/Qr71crq.jpg"/></a>
-          <div class="info">
-            <a href="" class="author">Eric Simons</a>
-            <span class="date">January 20th</span>
-          </div>
-
-          <button class="btn btn-sm btn-outline-secondary">
-            <i class="ion-plus-round"></i>
-            &nbsp; Follow Eric Simons <span class="counter">(10)</span>
-          </button>
-          &nbsp;
-          <button class="btn btn-sm btn-outline-primary">
-            <i class="ion-heart"></i>
-            &nbsp; Favorite Post <span class="counter">(29)</span>
-          </button>
-        </div>
+        <article-meta :article="article" :user="user" />
       </div>
 
       <div class="row">
@@ -65,62 +37,28 @@
                 class="form-control"
                 placeholder="Write a comment..."
                 rows="3"
+                v-model="comment.body"
               ></textarea>
             </div>
             <div class="card-footer">
-              <img
-                src="http://i.imgur.com/Qr71crq.jpg"
-                class="comment-author-img"
-              />
-              <button class="btn btn-sm btn-primary">
+              <img :src="user.image" class="comment-author-img" />
+              <button
+                class="btn btn-sm btn-primary"
+                @click.prevent="postComment"
+              >
                 Post Comment
               </button>
             </div>
           </form>
 
-          <div class="card">
-            <div class="card-block">
-              <p class="card-text">
-                With supporting text below as a natural lead-in to additional
-                content.
-              </p>
-            </div>
-            <div class="card-footer">
-              <a href="" class="comment-author">
-                <img
-                  src="http://i.imgur.com/Qr71crq.jpg"
-                  class="comment-author-img"
-                />
-              </a>
-              &nbsp;
-              <a href="" class="comment-author">Jacob Schmidt</a>
-              <span class="date-posted">Dec 29th</span>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-block">
-              <p class="card-text">
-                With supporting text below as a natural lead-in to additional
-                content.
-              </p>
-            </div>
-            <div class="card-footer">
-              <a href="" class="comment-author">
-                <img
-                  src="http://i.imgur.com/Qr71crq.jpg"
-                  class="comment-author-img"
-                />
-              </a>
-              &nbsp;
-              <a href="" class="comment-author">Jacob Schmidt</a>
-              <span class="date-posted">Dec 29th</span>
-              <span class="mod-options">
-                <i class="ion-edit"></i>
-                <i class="ion-trash-a"></i>
-              </span>
-            </div>
-          </div>
+          <article-comment
+            v-for="(comment, index) in comments"
+            :key="index"
+            :comment="comment"
+            :user="user"
+            :slug="article.slug"
+            @del="delComment"
+          />
         </div>
       </div>
     </div>
@@ -128,8 +66,61 @@
 </template>
 
 <script>
+import {
+  getArticleDetail,
+  getArticleComments,
+  addArticleComments,
+  delArticleComments,
+} from '@/api/article'
+import ArticleMeta from './components/article_meta.vue'
+import ArticleComment from './components/article_comment.vue'
+import { mapState } from 'vuex'
+
+const MarkdownIt = require('markdown-it')
 export default {
   name: 'ArticleIndex',
+  components: { ArticleMeta, ArticleComment },
+  computed: {
+    ...mapState(['user']),
+  },
+  data() {
+    return {
+      comment: {
+        body: '',
+      },
+    }
+  },
+  async asyncData({ params }) {
+    const [{ data: detailData }, { data: commentsData }] = await Promise.all([
+      getArticleDetail(params.slug),
+      getArticleComments(params.slug),
+    ])
+    const { article } = detailData
+    const md = new MarkdownIt()
+
+    article.body = md.render(article.body)
+
+    return {
+      article,
+      comments: commentsData.comments,
+    }
+  },
+  methods: {
+    async postComment() {
+      if (this.comment.body.trim()) {
+        const { data } = await addArticleComments(this.article.slug, {
+          comment: this.comment,
+        })
+
+        this.comments = [data.comment].concat(this.comments)
+        this.comment.body = ''
+      }
+    },
+    delComment(id) {
+      const index = this.comments.findIndex((comment) => comment.id === id)
+      this.comments.splice(index, 1)
+    },
+  },
 }
 </script>
 
