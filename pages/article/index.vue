@@ -70,7 +70,6 @@ import {
   getArticleDetail,
   getArticleComments,
   addArticleComments,
-  delArticleComments,
 } from '@/api/article'
 import ArticleMeta from './components/article_meta.vue'
 import ArticleComment from './components/article_comment.vue'
@@ -120,6 +119,18 @@ export default {
       const index = this.comments.findIndex((comment) => comment.id === id)
       this.comments.splice(index, 1)
     },
+  },
+  head() {
+    return {
+      title: `${this.article.title} - RealWorld`,
+      meta: [
+        {
+          hid: 'description',
+          name: 'description',
+          content: this.article.description,
+        },
+      ],
+    }
   },
 }
 </script>

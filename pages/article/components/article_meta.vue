@@ -20,7 +20,7 @@
         class="author"
         >{{ article.author.username }}</nuxt-link
       >
-      <span class="date">{{ article.createdAt }}</span>
+      <span class="date">{{ article.createdAt | dateFormat }}</span>
     </div>
     <template v-if="user.username === article.author.username">
       <nuxt-link

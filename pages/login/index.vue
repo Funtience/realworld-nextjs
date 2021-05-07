@@ -85,6 +85,8 @@ export default {
 
         const { data } = await loginApi({ user: this.user })
 
+        this.$store.commit('setUser', data.user)
+
         Cookie.set('user', data.user)
         this.$router.push('/')
       } catch (error) {

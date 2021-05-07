@@ -10,7 +10,7 @@
               {{ profile.bio }}
             </p>
             <button
-              v-if="user.username === username"
+              v-if="user.username === $route.params.username"
               class="btn btn-sm btn-outline-secondary action-btn"
               @click="$router.push('/settings')"
             >
@@ -27,7 +27,7 @@
               @click="handleFollow"
             >
               <i class="ion-plus-round"></i>
-              &nbsp; {{ profile.following ? 'Follow' : 'Unfollow' }}
+              &nbsp; {{ profile.following ? 'Unfollow' : 'Follow' }}
               {{ username }}
             </button>
           </div>
@@ -97,7 +97,7 @@
                   class="author"
                   >{{ article.author.username }}</nuxt-link
                 >
-                <span class="date">{{ article.createdAt }}</span>
+                <span class="date">{{ article.createdAt | dateFormat }}</span>
               </div>
               <button
                 @click="handleFavorite(article)"
@@ -159,7 +159,13 @@
 
 <script>
 import { getProfile, getUserInfo } from '@/api/user'
-import { getArticles, followAuthor, unfollowAuthor } from '@/api/article'
+import {
+  getArticles,
+  followAuthor,
+  unfollowAuthor,
+  addFavorite,
+  cancelFavorite,
+} from '@/api/article'
 export default {
   name: 'ProfileIndex',
   // watchQuery: ['page'],
@@ -202,6 +208,7 @@ export default {
             })
 
       this.articles = data.articles
+      this.articles.forEach((article) => (article.isDisabled = false))
       this.articlesCount = data.articlesCount
       this.totalPages = Math.ceil(this.articlesCount / limit)
     },
@@ -218,13 +225,35 @@ export default {
         this.profile.following = true
       }
     },
+    async handleFavorite(article) {
+      const index = this.articles.findIndex((art) => art.slug === article.slug)
+      this.$set(
+        this.articles,
+        index,
+        Object.assign(article, { isDisabled: true })
+      )
+      if (article.favorited) {
+        await cancelFavorite(article.slug)
+        article.favorited = false
+        article.favoritesCount--
+      } else {
+        await addFavorite(article.slug)
+        article.favorited = true
+        article.favoritesCount++
+      }
+      this.$set(
+        this.articles,
+        index,
+        Object.assign(article, { isDisabled: false })
+      )
+    },
     changePage() {
       this.fetchArticles()
     },
   },
   watch: {
     $route(to, from) {
-      if (to.name !== from.name) {
+      if (to !== from) {
         this.username = this.$route.params.username
         this.fetchUser()
         this.fetchProfile()

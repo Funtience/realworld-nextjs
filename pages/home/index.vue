@@ -87,7 +87,9 @@ import { mapState } from 'vuex';
                   class="author"
                   >{{ article.author.username }}</nuxt-link
                 >
-                <span class="date">{{ article.author.createdAt }}</span>
+                <span class="date">{{
+                  article.author.createdAt | dateFormat
+                }}</span>
               </div>
               <button
                 @click="handleFavorite(article)"
@@ -210,7 +212,7 @@ export default {
       articles,
       articlesCount,
       page,
-      pages: articlesCount / limit,
+      pages: Math.ceil(articlesCount / limit),
       tags,
       tag,
       tab,
