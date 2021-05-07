@@ -46,7 +46,7 @@
                 }"
               >
                 <img class="user-pic" :src="user.image" />
-                Little Fun
+                {{ user.username }}
               </nuxt-link>
             </li>
           </template>
