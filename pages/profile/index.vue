@@ -168,7 +168,7 @@ import {
 } from '@/api/article'
 export default {
   name: 'ProfileIndex',
-  // watchQuery: ['page'],
+  middleware: ['auth'],
   data() {
     return {
       username: '',
